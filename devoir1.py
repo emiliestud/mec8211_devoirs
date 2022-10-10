@@ -8,6 +8,7 @@ La fonction principale de resolution est solve_C, qui utilise d'auters fonctions
 import numpy as np
 import sympy as sp
 from numpy.linalg import inv
+import matplotlib.pyplot as plt
 
 
 #definition des constantes
@@ -20,77 +21,175 @@ Ce = 10 #mol/m3
 #definition des grandeurs necessaires au calcul des elements finis
 def create_C_0(Ntot):
 	the_C_0 = np.zeros((Ntot,1)) #vecteur des inconnues C a chaque noeud
-	the_C_0[0,0] = Ce
 	the_C_0[-1,0] = Ce
 	return the_C_0
 
-print(create_C_0(5))
 
-
-#ecriture de la matrice de resolution
-def create_matrix(Ntot,delta_t,delta_r):
+#ecriture de la matrice de resolution 
+# POUR LE CAS 1 DE DIFFERENCE FINIE
+def create_matrix_v1(Ntot,delta_t,delta_r, stationnary):
 	B = -delta_t*Deff
-	A = []
-	the_r = 0.
-	for i in range (Ntot):
-		the_r = the_r + delta_r
-		#A.append(delta_t*Deff*(2 + 1/the_r*delta_r)) pour cas stationnaire
-		A.append(delta_r**2 + delta_t*Deff*(2 + 1/the_r*delta_r)) 
+	the_r = 0
 
-	M = np.zeros((Ntot,Ntot))
-	M[0,0] = 1.0
-	M[-1,-1] = 1
-	for i in range (1,Ntot-1):
+	M = np.zeros((Ntot,Ntot)) 
+	M[0,1] = 1.0 # C0 = C1
+	M[-1,-1] = 1.0 #C5 = Ce = constante
+	if stationnary == True :
+		alpha = 0.0
+	else:
+		alpha = 1.0
+	for i in range (1,Ntot-1): # de i = 1 a 3
+		the_r = the_r + delta_r
 		M[i,i-1] = B
-		M[i,i] = A[i]
-		M[i,i+1] = B
+		M[i,i] = alpha*delta_r**2 -B*(2 + delta_r/the_r)
+		M[i,i+1] = B*(1 + delta_r/the_r)
 	return M
 
 
+# POUR LE CAS 2 DE DIFFERENCE FINIE
+def create_matrix_v2(Ntot,delta_t,delta_r,stationnary):
+	B = -delta_t*Deff
+	the_r = 0
+
+	M = np.zeros((Ntot,Ntot)) 
+	M[0,1] = 1.0 # C0 = C1
+	M[-1,-1] = 1.0 #C5 = Ce = constante
+
+	if stationnary == True:
+		alpha = 0.0
+	else:
+		alpha = 1.0
+
+	for i in range (1,Ntot-1): # de i = 1 a 3
+		the_r = the_r + delta_r
+		M[i,i-1] = B*(1-delta_r/(2*the_r))
+		M[i,i] = alpha*delta_r**2 -B*2
+		M[i,i+1] = B*(1 + delta_r/(2*the_r))
+	return M
+
+
+
 #definition du terme de droite
-def create_R_vector(Ntot,the_C,delta_t,delta_r):
+def create_R_vector(Ntot,the_C,delta_t,delta_r, stationnary):
 	D = np.zeros((Ntot,1))
 	D[0,0] = Ce
 	D[-1,0] = Ce
-	for i in range (1, Ntot-1):
-		#D[i,0] = - S*delta_t*delta_r**2 pour cas stationnaire
-		D[i,0] = delta_r**2*the_C[i] - S*delta_t*delta_r**2
+	the_r = 0
+
+	if stationnary == True:
+		alpha = 0.0
+	else : 
+		alpha = 1.0
+
+	for i in range (Ntot -1):
+		the_r += delta_r
+		D[i,0] = - S*delta_t*delta_r**2 + alpha*delta_r**2*the_C[i]
 	return D
 
 
 #calcul du nouveau vecteur de solution a chaque iteration de temps
-def solve_C(Ntot,delta_t,time_iter):
+def solve_C(Ntot,delta_t,time_iter,stationnary): #stationnary = Bool
 	t = 0
 	k = 0
-	delta_r =D/(Ntot-1)
+	delta_r =R/(Ntot-1)
 	the_C = create_C_0(Ntot)
-	my_M = create_matrix(Ntot,delta_t,delta_r)
+	my_M = create_matrix_v1(Ntot,delta_t,delta_r,stationnary)
 	#print(my_M)
 	while k < time_iter:
 		t+=delta_t
 		#update du vecteur D a chaque iteration en temps
-		my_D = create_R_vector(Ntot,the_C,delta_t,delta_r)
-		#print(my_D)
+		my_D = create_R_vector(Ntot,the_C,delta_t,delta_r,stationnary)
 		#resolution du nouveau vecteur inconnu pour le pas de temps
-		my_M_inv = np.linalg.inv(my_M)
-		#print(my_M_inv)
-		the_C = np.matmul(my_M_inv,my_D)
-		#the_C = np.linalg.solve(my_M,my_D)
+		the_C = np.linalg.solve(my_M,my_D)
 		k+=1
 	return the_C
 
-my_C = solve_C(5,1,100)
+my_C = solve_C(5,1,1,True)
 print(my_C)
 
+##################################################
+### ---- Solution analytique stationnaire ---- ###
+##################################################
 
 def stationnary_analytic_C(Ntot):
 	anal_C = np.zeros((Ntot,1)) #for comparisons
-	the_r = np.array([-R,-R/2,0,R/2,R])
+	the_r = np.linspace(0,R,Ntot)
 	for i in range (Ntot):
 		r = the_r[i]
 		anal_C[i] = 1/4*S/Deff*R**2*((r/R)**2-1)+Ce
 	return anal_C
 
-print(stationnary_analytic_C(5))
+#print(stationnary_analytic_C(5))
 
-#cas stationnaire : pas de terme en (i-1,t+1) ni en (i,t-1)
+#cas stationnaire : pas de terme en (i-1,t+1) ni en (i,t-1), et pas de temps delta_t = 1
+
+#######################################
+### ---- Calcul de l'erreur L1 ---- ###
+#######################################
+
+def erreur_L1(u_num,u_anal,Ntot):
+	err = 0.0
+	r = 0
+	delta_r = D/(Ntot-1)
+	for n in range (Ntot):
+		r_n = r + delta_r
+		err += r_n+abs(u_num[n]-u_anal[n])
+	err = err/Ntot
+	return err
+
+#######################################
+### ---- Calcul de l'erreur L2 ---- ###
+#######################################
+
+def erreur_L2(u_num,u_anal,Ntot):
+	err = 0.0
+	r = 0
+	delta_r = D/(Ntot-1)
+	for n in range (Ntot):
+		r_n = r + delta_r
+		err += r_n+abs(u_num[n]-u_anal[n])**2
+	err = err/Ntot
+	err = np.sqrt(err)
+	return err
+
+
+############################################
+### ---- Calcul de l'erreur inifnie ---- ###
+############################################
+
+
+def erreur_inf(u_num,u_anal,Ntot):
+	err = 0.0
+	for n in range (Ntot):
+		if abs(u_num[n]-u_anal[n]) >= err:
+			err = abs(u_num[n]-u_anal[n])
+	return err
+
+###########################################
+###########################################
+###########################################
+list_ntot = [5,10,15,20]
+erreurs_1 = []
+erreurs_2 = []
+erreurs_3 = []
+
+for Ntot in list_ntot:
+	the_radii = np.linspace(0,R,Ntot)
+	my_C = solve_C(Ntot,1,1,True)
+	u_anal = stationnary_analytic_C(Ntot)
+	err1 = erreur_L1(my_C,u_anal,Ntot)
+	err2 = erreur_L2(my_C,u_anal,Ntot)
+	err3 = erreur_inf(my_C,u_anal,Ntot)
+	erreurs_1.append(err1)
+	erreurs_2.append(err2)
+	erreurs_3.append(err3)
+
+plt.plot(list_ntot,erreurs_1, label = 'erreur L1')
+plt.plot(list_ntot,erreurs_2, label = 'erreur L2')
+plt.plot(list_ntot,erreurs_3, label = 'erreur infinie')
+plt.legend()
+plt.title('erreurs dans le cas stationnaire')
+plt.xlabel('nombre de noeuds')
+plt.ylabel('erreurs')
+plt.grid()
+plt.show()
