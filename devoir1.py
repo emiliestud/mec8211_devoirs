@@ -3,6 +3,14 @@ Ce code correspond a un code de differences finies pour la question D du devoir 
 Ce code est bien generique par rapport a Ntot car ici Ntot est un parametre utilise par un ensemble de fonctions.
 La fonction principale de resolution est solve_C, qui utilise d'auters fonctions qui servent a definir les matrices de difference finies
 
+Pour lancer une solution, il faut utilise la fonction solve_C_v1, ou solve_C_v2 en fonction du schéma de différences finies souhaité. 
+Cette fonction utilise les autres fonctions antérieures de création de matrices pour résoudre le probleme.
+Les parametres de ces fonction ssont : 
+- le nombre de noeuds total Ntot
+- le pas de temps delta_t
+- le nombre d'iterations en temps desirees time_iter
+- si on choisit d'utiliser le schema de difference finies pour lecas stationnaire ou non bool:stationnary
+
 """
 
 import numpy as np
