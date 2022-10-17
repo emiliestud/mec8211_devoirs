@@ -11,16 +11,18 @@ from numpy.linalg import inv
 import matplotlib.pyplot as plt
 
 
-#definition des constantes
+#### --- definition des constantes --- ###
 S = 10**(-8) #mol/m3/s
 Deff = 10**(-10) # m2/s
 R = 0.5 #m
 D = 2*R #m
 Ce = 10 #mol/m3
 
-#definition des grandeurs necessaires au calcul des elements finis
+
+#### --- definition des grandeurs necessaires au calcul des elements finis --- ###
+#vecteur des inconnues C a chaque noeud, initialise avec les conditions initiales
 def create_C_0(Ntot):
-	the_C_0 = np.zeros((Ntot,1)) #vecteur des inconnues C a chaque noeud
+	the_C_0 = np.zeros((Ntot,1)) 
 	the_C_0[-1,0] = Ce
 	return the_C_0
 
@@ -46,12 +48,9 @@ def create_matrix_v1(Ntot,delta_t,delta_r, stationnary):
 	return M
 
 
-
-
 #definition du terme de droite
 def create_R_vector(Ntot,the_C,delta_t,delta_r, stationnary):
 	D = np.zeros((Ntot,1))
-	D[0,0] = Ce
 	D[-1,0] = Ce
 	the_r = 0
 
@@ -199,7 +198,7 @@ def erreur_inf(u_num,u_anal,Ntot):
 ###########################################
 ###########################################
 ###########################################
-list_ntot = [5,10,15,20]
+list_ntot = [5,10,15,20,40,60]
 erreurs_1 = []
 erreurs_2 = []
 erreurs_3 = []
@@ -223,3 +222,11 @@ plt.title('erreurs dans le cas stationnaire')
 plt.xlabel('log du nombre de noeuds')
 plt.ylabel('log(erreur)')
 plt.show()
+
+
+###################################################################################
+####################### --- Methode des problemes proches ---######################
+###################################################################################
+
+
+### Calcul d'un solution avec un maillage tres fin
