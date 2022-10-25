@@ -17,6 +17,8 @@ import numpy as np
 import sympy as sp
 from numpy.linalg import inv
 import matplotlib.pyplot as plt
+import scipy as scp
+from scipy import interpolate
 
 
 #### --- definition des constantes --- ###
@@ -43,6 +45,7 @@ def create_matrix_v1(Ntot,delta_t,delta_r, stationnary):
 
 	M = np.zeros((Ntot,Ntot)) 
 	M[0,1] = 1.0 # C0 = C1
+	M[0,0] = -1.0
 	M[-1,-1] = 1.0 #C5 = Ce = constante
 	if stationnary == True :
 		alpha = 0.0
@@ -67,7 +70,7 @@ def create_R_vector(Ntot,the_C,delta_t,delta_r, stationnary):
 	else : 
 		alpha = 1.0
 
-	for i in range (Ntot -1):
+	for i in range (1,Ntot -1):
 		the_r += delta_r
 		D[i,0] = - S*delta_t*delta_r**2 + alpha*delta_r**2*the_C[i]
 	return D
@@ -90,8 +93,8 @@ def solve_C_v1(Ntot,delta_t,time_iter,stationnary): #stationnary = Bool
 		k+=1
 	return the_C
 
-my_C = solve_C_v1(5,1,1,True)
-print(my_C)
+#my_C = solve_C_v1(500,1,1000,False)
+#print(my_C)
 
 
 
@@ -139,7 +142,7 @@ def solve_C_v2(Ntot,delta_t,time_iter,stationnary): #stationnary = Bool
 	return the_C
 
 my_C = solve_C_v2(5,1,1,True)
-print(my_C)
+#print(my_C)
 
 
 
@@ -157,6 +160,14 @@ def stationnary_analytic_C(Ntot):
 		anal_C[i] = 1/4*S/Deff*R**2*((r/R)**2-1)+Ce
 	return anal_C
 
+
+my_C = solve_C_v2(5,1,1,True)
+radii = [0.,R/4,R/2,3*R/4,R]
+#print(my_C)
+plt.figure()
+plt.plot(radii,my_C,label = 'numerique')
+plt.plot(radii,stationnary_analytic_C(5),label = 'analytique')
+plt.legend()
 #print(stationnary_analytic_C(5))
 
 #cas stationnaire : pas de terme en (i-1,t+1) ni en (i,t-1), et pas de temps delta_t = 1
@@ -206,14 +217,15 @@ def erreur_inf(u_num,u_anal,Ntot):
 ###########################################
 ###########################################
 ###########################################
-list_ntot = [5,10,15,20,40,60]
+#list_ntot = [5,10,15,20,40,60]
+list_ntot = [5]
 erreurs_1 = []
 erreurs_2 = []
 erreurs_3 = []
 
 for Ntot in list_ntot:
 	the_radii = np.linspace(0,R,Ntot)
-	my_C = solve_C_v1(Ntot,1,1,True)
+	my_C = solve_C_v1(Ntot,1,50,False)
 	u_anal = stationnary_analytic_C(Ntot)
 	err1 = erreur_L1(my_C,u_anal,Ntot)
 	err2 = erreur_L2(my_C,u_anal,Ntot)
@@ -222,14 +234,16 @@ for Ntot in list_ntot:
 	erreurs_2.append(err2)
 	erreurs_3.append(err3)
 
+
+plt.figure()
 plt.loglog(list_ntot,erreurs_1, label = 'erreur L1')
-plt.loglog(list_ntot,erreurs_2, label = 'erreur L2')
-plt.loglog(list_ntot,erreurs_3, label = 'erreur infinie')
+#plt.loglog(list_ntot,erreurs_2, label = 'erreur L2')
+#plt.loglog(list_ntot,erreurs_3, label = 'erreur infinie')
 plt.legend()
 plt.title('erreurs dans le cas stationnaire')
 plt.xlabel('log du nombre de noeuds')
 plt.ylabel('log(erreur)')
-plt.show()
+#plt.show()
 
 
 ###################################################################################
@@ -237,4 +251,38 @@ plt.show()
 ###################################################################################
 
 
-### Calcul d'un solution avec un maillage tres fin
+### Calcul d'un solution avec un maillage tres fin avec Ntot = 60
+Ntot = 60
+C_analytical = solve_C_v1(Ntot,1,1,True)
+
+
+### Interpolation Analytique
+the_r = np.linspace(0,R,Ntot)
+#print(the_r)
+#print(len( C_analytical[:,0]))
+f = scp.interpolate.interp1d(the_r, C_analytical[:,0],'cubic')
+the_r_new = the_r
+C_interpolated = f(the_r_new)
+#print(np.size(C_interpolated))
+plt.figure()
+plt.plot(the_r_new,C_interpolated)
+plt.show()
+
+### Obtention du terme source analytique
+
+radius = sp.symbols('radius')
+#Solution interpolee est derivee'
+f_sp = sp.Function('f')
+C_interpolated = f_sp(radius)
+
+#appliquer l'operateur  sur la solution interpolee
+source_stationnary = Deff*1/radius*sp.diff(radius*sp.diff(C_interpolated,radius),radius)-S
+
+#create callable fonction pour l'expression symbolique
+f_source = sp.lambdify(radius,source_stationnary)
+
+my_source = f_source(the_r_new)
+plt.figure()
+plt.plot(the_r_new,my_source)
+plt.title('terme source')
+plt.show()
