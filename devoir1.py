@@ -106,9 +106,10 @@ def create_matrix_v2(Ntot,delta_t,delta_r,stationnary):
 	B = -delta_t*Deff
 	the_r = 0
 
-	M = np.zeros((Ntot,Ntot)) 
-	M[0,1] = 4/3
-	M[0,2] = -1/3
+	M = np. zeros((Ntot,Ntot)) 
+	M[0,0]= -3
+	M[0,1] = 4
+	M[0,2] = -1
 	M[-1,-1] = 1.0 #C5 = Ce = constante
 
 	if stationnary == True:
