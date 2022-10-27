@@ -13,6 +13,7 @@ Les parametres de ces fonction ssont :
 
 """
 
+from xml.etree.ElementInclude import XINCLUDE_FALLBACK
 import numpy as np
 import sympy as sp
 from numpy.linalg import inv
@@ -27,6 +28,7 @@ Deff = 10**(-10) # m2/s
 R = 0.5 #m
 D = 2*R #m
 Ce = 10 #mol/m3
+k = 4e-9 #s^-1
 
 
 #### --- definition des grandeurs necessaires au calcul des elements finis --- ###
@@ -238,52 +240,213 @@ for Ntot in list_ntot:
 
 plt.figure()
 plt.loglog(list_ntot,erreurs_1, label = 'erreur L1')
-#plt.loglog(list_ntot,erreurs_2, label = 'erreur L2')
-#plt.loglog(list_ntot,erreurs_3, label = 'erreur infinie')
+plt.loglog(list_ntot,erreurs_2, label = 'erreur L2')
+plt.loglog(list_ntot,erreurs_3, label = 'erreur infinie')
 plt.legend()
 plt.title('erreurs dans le cas stationnaire')
 plt.xlabel('log du nombre de noeuds')
 plt.ylabel('log(erreur)')
+plt.title('erreurs')
 #plt.show()
 
+####################################################################################
+####################################################################################
+####################### --- Methode des problemes proches --- ######################
+####################################################################################
+####################################################################################
 
-###################################################################################
-####################### --- Methode des problemes proches ---######################
-###################################################################################
 
+"""
+Now we don't take S = constant but S = kC instead. in the Finite formulation, we then get for timestep t+1 S = kC(i,t+1).
+Then the right vector which depended on the constant C is modified, as well  as the matric M which now includes the term in S = KC(i,t+1)
+We do that thanks to the new functions create_R_vector_bis and create_matric_v2_bis. We then need to call a new function solve_C_v2_bis that uses the finite difference
+scheme of exercice F of work 1 (as solve_C_v2), but it uses these 2 new functions instead.
+The selection of a stationnary or unstationnary equation still works the same, with the boolean stationnary in the main function
+
+"""
+
+
+#definition du terme de droite avec réaction du premier ordre
+def create_R_vector_bis(Ntot,the_C,delta_t,delta_r, stationnary):
+	D = np.zeros((Ntot,1))
+	D[-1,0] = Ce
+	the_r = 0
+
+	if stationnary == True:
+		alpha = 0.0
+	else : 
+		alpha = 1.0
+
+	for i in range (1,Ntot -1):
+		the_r += delta_r
+		D[i,0] = alpha*delta_r**2*the_C[i]
+	return D
+
+
+# POUR LE CAS 2 DE DIFFERENCE FINIE
+def create_matrix_v2_bis(Ntot,delta_t,delta_r,stationnary):
+	B = -delta_t*Deff
+	the_r = 0
+
+	M = np. zeros((Ntot,Ntot)) 
+	M[0,0]= -3
+	M[0,1] = 4
+	M[0,2] = -1
+	M[-1,-1] = 1.0 #C5 = Ce = constante
+
+	if stationnary == True:
+		alpha = 0.0
+	else:
+		alpha = 1.0
+
+	for i in range (1,Ntot-1): # de i = 1 a 3
+		the_r = the_r + delta_r
+		M[i,i-1] = B*(1-delta_r/(2*the_r))
+		M[i,i] = alpha*delta_r**2 -B*2 + delta_t*delta_r**2*k
+		M[i,i+1] = B*(1 + delta_r/(2*the_r))
+	return M
+
+
+#calcul du nouveau vecteur de solution a chaque iteration de temps
+def solve_C_v2_bis(Ntot,delta_t,time_iter,stationnary): #stationnary = Bool
+	t = 0
+	k = 0
+	delta_r =R/(Ntot-1)
+	the_C = create_C_0(Ntot)
+	my_M = create_matrix_v2_bis(Ntot,delta_t,delta_r,stationnary)
+	#print(my_M)
+	while k < time_iter:
+		t+=delta_t
+		#update du vecteur D a chaque iteration en temps
+		my_D = create_R_vector_bis(Ntot,the_C,delta_t,delta_r,stationnary)
+		#resolution du nouveau vecteur inconnu pour le pas de temps
+		the_C = np.linalg.solve(my_M,my_D)
+		k+=1
+	return the_C
+
+
+####################################################################################
+# cas 1 : analyse de convergence en espace, travail avec l'équation stationnaire
+####################################################################################
 
 ### Calcul d'un solution avec un maillage tres fin avec Ntot = 60
-Ntot = 60
-C_analytical = solve_C_v1(Ntot,1,1,True)
+Ntot = 100
+C_analytical_stationnary = solve_C_v2_bis(Ntot,1,1,True)
 
 
 ### Interpolation Analytique
-the_r = np.linspace(0,R,Ntot)
-#print(the_r)
-#print(len( C_analytical[:,0]))
-f = scp.interpolate.interp1d(the_r, C_analytical[:,0],'cubic')
-the_r_new = the_r
-C_interpolated = f(the_r_new)
-#print(np.size(C_interpolated))
+radii = np.linspace(0,R,Ntot)
+C_stationnary = scp.interpolate.interp1d(radii, C_analytical_stationnary[:,0],'cubic')
+
+
+C_interpolated_stationnary = C_stationnary(radii)
 plt.figure()
-plt.plot(the_r_new,C_interpolated)
-plt.show()
+plt.plot(radii,C_analytical_stationnary)
+plt.title('solution stationnaire interpolee')
+plt.xlabel('radius [m]')
+plt.ylabel('C [mol/m³]')
+plt.grid()
+#plt.show()
 
 ### Obtention du terme source analytique
+radius,time = sp.symbols('radius time')
 
-radius = sp.symbols('radius')
-#Solution interpolee est derivee'
-f_sp = sp.Function('f')
-C_interpolated = f_sp(radius)
+from sympy.utilities.lambdify import implemented_function
+#Solution MNP interpolee est derivee'
+f_stationnary_MNP = implemented_function('f_stationnary_MNP',C_stationnary)
+# C_sp_stationnary = sp.Function('C_stationnary')
+#C_sp_stationnary = sp.symbols('f_sp_stationnary', cls = function) 
+#C_interpolated = f_sp(radius)
 
 #appliquer l'operateur  sur la solution interpolee
-source_stationnary = Deff*1/radius*sp.diff(radius*sp.diff(C_interpolated,radius),radius)-S
-
+source_stationnary = Deff*1/radius*sp.diff(radius*sp.diff(f_stationnary_MNP,radius),radius)-k*f_stationnary_MNP.evalf(radius)
 #create callable fonction pour l'expression symbolique
-f_source = sp.lambdify(radius,source_stationnary)
+f_source_stationnary = sp.lambdify(radius,source_stationnary,"numpy")
 
-my_source = f_source(the_r_new)
+#visualisation des resultats
+#taille du domaine
+xmin = 0.001
+xmax = 0.5
+
+#set up a regular grid of interpolation points
+xdom = np.linspace(0,R,50)
+xi = np.meshgrid(xdom)
+z_MNP = C_stationnary(xi)
+z_source = f_source_stationnary(radii)
+
+#evaluate MNP function and source term on the grid
+#z_MNP = f_sp(xi)
+z_source_stationnary = []
+
+
 plt.figure()
-plt.plot(the_r_new,my_source)
-plt.title('terme source')
+plt.plot(radii,z_source)
+plt.xlabel('radius [m]')
+plt.ylabel('terme source')
+plt.title('Terme source, cas stationnaire')
+plt.grid()
+plt.show()
+
+
+####################################################################################
+# cas 2 : analyse de convergence en temps, travail avec l'équation instationnaire
+####################################################################################
+
+### Calcul d'un solution avec un maillage tres fin avec Ntot = 60
+Ntot = 100
+Ttot = 6
+delta_t = 0.01
+time_iter = Ttot/delta_t
+C_analytical_unstationnary = solve_C_v2_bis(Ntot,delta_t,time_iter,False)
+
+#Interpolation de la solution analytique
+C_unstationnary = scp.interpolate.interp1d(radii, C_analytical_stationnary[:,0],'cubic')
+
+
+plt.figure()
+plt.plot(radii,C_analytical_stationnary,label = 'stationnaire')
+plt.plot(radii,C_analytical_unstationnary, label = 'instationnaire')
+plt.title('solution stationnaire interpolee')
+plt.xlabel('radius [m]')
+plt.legend()
+plt.ylabel('C [mol/m³]')
+plt.grid()
+#plt.show()
+
+### Obtention du terme source analytique
+radius,time = sp.symbols('radius time')
+
+from sympy.utilities.lambdify import implemented_function
+#Solution MNP interpolee est derivee'
+f_unstationnary_MNP = implemented_function('f_stationnary_MNP',C_stationnary)
+# C_sp_stationnary = sp.Function('C_stationnary')
+#C_sp_stationnary = sp.symbols('f_sp_stationnary', cls = function) 
+#C_interpolated = f_sp(radius)
+
+#appliquer l'operateur  sur la solution interpolee
+source_unstationnary = sp.diff(f_unstationnary_MNP,time)-Deff*1/radius*sp.diff(radius*sp.diff(f_unstationnary_MNP,radius),radius)+k*f_unstationnary_MNP.evalf(radius)
+#create callable fonction pour l'expression symbolique
+f_source_unstationnary = sp.lambdify(radius,source_unstationnary,"numpy")
+
+#visualisation des resultats
+#taille du domaine
+xmin = 0.001
+xmax = 0.5
+
+#set up a regular grid of interpolation points
+xdom = np.linspace(0,R,50)
+xi = np.meshgrid(xdom)
+z_MNP = C_unstationnary(xi)
+z_source_unstationnary = f_source_unstationnary(radii)
+
+
+
+plt.figure()
+#plt.plot(radii,z_source,label = 'stationnaire')
+plt.plot(radii,z_source_unstationnary,label = 'instationnaire')
+plt.xlabel('radius [m]')
+plt.ylabel('terme source')
+plt.legend()
+plt.title('Terme source, cas stationnaire')
+plt.grid()
 plt.show()
