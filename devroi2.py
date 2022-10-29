@@ -295,7 +295,7 @@ def solve_C_v2_bis(Ntot,delta_t,time_iter,stationnary): #stationnary = Bool
 
 # Calcul d'un solution avec un maillage tres fin avec Ntot = 60
 Ntot_1 = 10000
-delta_t_1 = 0.00001
+delta_t_1 = 0.0001
 time_iter_1 = 5
 Ttot_1 = time_iter_1*delta_t_1
 #Ttot=delta_t*time_iter
@@ -359,10 +359,10 @@ plt.show()
 ####################################################################################
 
 ### Calcul d'un solution avec un maillage tres fin avec Ntot = 60
-Ntot_2 = 10000
-delta_t_2 = 0.00001
+Ntot_2 = 100
+delta_t_2 = 0.0001
 time_iter_2 = 10
-Ttot_2 = time_iter_2*delta_t_2
+Ttot_2 = delta_t_2*time_iter_2
 radii_2 = np.linspace(0,R,Ntot_2)
 times_2 = np.arange(0,Ttot_2,delta_t_2)
 
@@ -516,7 +516,7 @@ def solve_C_v2_ter(Ntot,delta_t,time_iter,stationnary): #stationnary = Bool
 #cas stationnaire, erreur en espace
 
 #MNP_final_C_stationnary = solve_C_v2_ter(Ntot,1,1,True)
-MNP_final_C_1 = solve_C_v2_ter(Ntot_1,delta_t_1,time_iter_1,False)
+#MNP_final_C_1 = solve_C_v2_ter(Ntot_1,delta_t_1,time_iter_1,False)
 
 
 list_ntot = [5,10,15,20,40,100]
@@ -530,7 +530,7 @@ radii2 = np.linspace(0,R,Nmax)
 
 
 u_anals = []
-for my_time_iter in range(time_iter_2):
+for my_time_iter in range(time_iter_1):
     u_anal = solve_C_v2_bis(Nmax,delta_t_1,time_iter_1,False)
     u_anals.append(u_anal)
 
@@ -575,13 +575,13 @@ plt.show()
 ###################################
 #cas unstationnaire, erreur en temps
 
-list_dts = [0.0000000001,0.0000000002,0.0000000004,0.0000000008,0.0000000016]
+list_dts = [0.1,0.2,0.4,0.8,1.6]
 #list_dts = [0.1,0.2,0.4,0.8,1.6]
 erreurs_11 = []
 erreurs_22 = []
 erreurs_33 = []
 
-delta_t_min =0.0000000001
+delta_t_min =0.00001
 time_iter_min = Ttot_2/delta_t_min
 u_anal_2 = solve_C_v2_ter(Ntot_2,delta_t_min,time_iter_min,False)
 #radii2 = np.linspace(0,R,Ntot_2)
