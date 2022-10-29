@@ -293,22 +293,23 @@ def solve_C_v2_bis(Ntot,delta_t,time_iter,stationnary): #stationnary = Bool
 # cas 1 : analyse de convergence en espace, travail avec l'équation instationnaire
 ####################################################################################
 
-### Calcul d'un solution avec un maillage tres fin avec Ntot = 60
-Ntot = 100
-delta_t = 10
-time_iter = 10
-Ttot=delta_t*time_iter
+# Calcul d'un solution avec un maillage tres fin avec Ntot = 60
+Ntot_1 = 10000
+delta_t_1 = 0.00001
+time_iter_1 = 5
+Ttot_1 = time_iter_1*delta_t_1
+#Ttot=delta_t*time_iter
 C_analyticals_1 = []
-for my_time_iter in range(time_iter):
-    C_analytical_1 = solve_C_v2_bis(Ntot,delta_t,my_time_iter,False)
+for my_time_iter in range(time_iter_1):
+    C_analytical_1 = solve_C_v2_bis(Ntot_1,delta_t_1,my_time_iter,False)
     C_analyticals_1.append(C_analytical_1)
 print(np.shape(C_analyticals_1))
-radii = np.linspace(0,R,Ntot)
-times = np.arange(0,Ttot,delta_t)
+radii_1 = np.linspace(0,R,Ntot_1)
+times_1 = np.arange(0,Ttot_1,delta_t_1)
 
 #Interpolation de la solution analytique
-RR,TT= np.meshgrid(radii,times)
-C_1 = scp.interpolate.interp2d(radii,times, C_analyticals_1,'cubic')
+RR,TT= np.meshgrid(radii_1,times_1)
+C_1 = scp.interpolate.interp2d(radii_1,times_1, C_analyticals_1,'cubic')
 
 
 
@@ -318,46 +319,27 @@ radius,time = sp.symbols('radius time')
 from sympy.utilities.lambdify import implemented_function
 #Solution MNP interpolee est derivee'
 f_1_MNP = implemented_function('f_1_MNP',C_1)
-# C_sp_stationnary = sp.Function('C_stationnary')
-#C_sp_stationnary = sp.symbols('f_sp_stationnary', cls = function) 
-#C_interpolated = f_sp(radius)
 
 #appliquer l'operateur  sur la solution interpolee
 source_1 = sp.diff(f_1_MNP,time)-Deff*1/radius*sp.diff(radius*sp.diff(f_1_MNP,radius),radius)+k
 #create callable fonction pour l'expression symbolique
-f_source_1 = sp.lambdify([time,radius],source_1,"numpy")
+f_source_1 = sp.lambdify([radius,time],source_1,"numpy")
 
 #visualisation des resultats
 #taille du domaine
 rmin = 0
 rmax = R
 tmin = 0
-tmax = delta_t*time_iter
-
-rdom = np.linspace(rmin,rmax,1000)
-tdom = np.linspace(tmin,tmax,1000)
-ri,ti = np.meshgrid(rdom,tdom)
-
-#set up a regular grid of interpolation points
-#z_MNP = C_1(radii,times)
-z_MNP_1 = C_1(rdom,tdom)
-z_source_1 = f_source_1(ri,ti)
-
-# plt.contour(ri,ti,z_MNP_1)
-# plt.colorbar()
-# plt.title('Fonction analytique MNP [$mol/m^3$]')
-# plt.xlabel('radius [m]')
-# plt.ylabel('time [s]')
-# plt.show()
+tmax = delta_t_1*time_iter_1
 
 y = []
 y_source = []
-for r in radii:
-    y.append(C_1(r,times[-1]))
-    y_source.append(f_source_1(r,times[-1]))
+for r in radii_1:
+    y.append(C_1(r,times_1[-1]))
+    y_source.append(f_source_1(r,times_1[-1]))
 
 plt.figure()
-plt.plot(radii,y)
+plt.plot(radii_1,y)
 plt.xlabel('radius [m]')
 plt.grid()
 plt.ylabel('C [mol/m³]')
@@ -365,43 +347,35 @@ plt.title('solution MNP à $t = t_f$')
 plt.show()
 
 plt.figure()
-plt.plot(radii,y_source)
+plt.plot(radii_1,y_source)
 plt.xlabel('radius [m]')
 plt.grid()
-plt.ylabel('C [mol/m³]')
-plt.title('solution MNP à $t = t_f$')
+plt.ylabel('$S_{MNP}$ [mol/m³]')
+plt.title('Terme source à $t = t_f$')
 plt.show()
 
-
-plt.contour(ri,ti,z_source_1)
-plt.colorbar()
-plt.title('Fonction analytique MNP [$mol/m^3$]')
-plt.xlabel('radius [m]')
-plt.ylabel('time [s]')
-plt.show()
-# plt.figure()
-
-# plt.plot(radii,z_source_1,label = 'instationnaire')
-# plt.xlabel('radius [m]')
-# plt.ylabel('terme source [mol/m³]')
-# plt.legend()
-# plt.title('Terme source, cas instationnaire')
-# plt.grid()
-# plt.show()
-
-
-# ####################################################################################
-# # cas 2 : analyse de convergence en temps, travail avec l'équation instationnaire
-# ####################################################################################
+####################################################################################
+# cas 2 : analyse de convergence en temps, travail avec l'équation instationnaire
+####################################################################################
 
 ### Calcul d'un solution avec un maillage tres fin avec Ntot = 60
-Ntot = 100
-Ttot = 10
-delta_t = 10
-time_iter = Ttot/delta_t
-radii_2 = np.linspace(0,R,Ntot)
+Ntot_2 = 10000
+delta_t_2 = 0.00001
+time_iter_2 = 10
+Ttot_2 = time_iter_2*delta_t_2
+radii_2 = np.linspace(0,R,Ntot_2)
+times_2 = np.arange(0,Ttot_2,delta_t_2)
 
-C_analyticals_2 = C_analyticals_1
+
+
+#Ttot=delta_t*time_iter
+C_analyticals_2 = []
+for my_time_iter in range(time_iter_2):
+    C_analytical_2 = solve_C_v2_bis(Ntot_2,delta_t_2,my_time_iter,False)
+    C_analyticals_2.append(C_analytical_2)
+print(np.shape(C_analyticals_2))
+
+
 # for my_time_iter in range(time_iter):
 #     C_analytical_2 = solve_C_v2_bis(Ntot,delta_t,my_time_iter,False)
 #     C_analyticals_2.append(C_analytical_2)
@@ -410,30 +384,11 @@ C_analyticals_2 = C_analyticals_1
 # times = np.arange(0,Ttot,delta_t)
 
 #Interpolation de la solution analytique
-RR,TT= np.meshgrid(radii_2,times)
-C_2 = scp.interpolate.interp2d(radii_2,times, C_analyticals_2,'cubic')
+RR,TT= np.meshgrid(radii_2,times_2)
+print(np.shape(C_analyticals_2))
+C_2 = scp.interpolate.interp2d(radii_2,times_2, C_analyticals_2,'cubic')
 f_2_MNP = implemented_function('f_1_MNP',C_2)
 
-# #Interpolation de la solution analytique
-# C_2 = scp.interpolate.interp1d(radii, C_analytical_2[:,0],'cubic')
-
-
-# plt.figure()
-# plt.plot(radii,C_analytical_2, label = 'instationnaire')
-# plt.title('solutions interpolées')
-# plt.xlabel('radius [m]')
-# plt.legend()
-# plt.ylabel('C [mol/m³]')
-# plt.grid()
-# plt.show()
-
-
-# from sympy.utilities.lambdify import implemented_function
-# #Solution MNP interpolee est derivee'
-# f_2_MNP = implemented_function('f_stationnary_MNP',C_stationnary)
-# # C_sp_stationnary = sp.Function('C_stationnary')
-# #C_sp_stationnary = sp.symbols('f_sp_stationnary', cls = function) 
-# #C_interpolated = f_sp(radius)
 
 #appliquer l'operateur  sur la solution interpolee
 #source_2 = sp.diff(f_2_MNP,time)-Deff*1/radius*sp.diff(radius*sp.diff(f_2_MNP,radius),radius)+k*f_2_MNP.evalf(time,radius)
@@ -443,31 +398,37 @@ f_source_2 = sp.lambdify([radius,time],source_2,"numpy")
 
 #visualisation des resultats
 #taille du domaine
-# rmin = 0
-# rmax = R
-# tmin = 0
-# tmax = delta_t*time_iter
+rmin = 0
+rmax = R
+tmin = 0
+tmax = delta_t_2*time_iter_2
 
-# rdom = np.linspace(rmin,rmax,1000)
-# tdom = np.linspace(tmin,tmax,1000)
-# ri,ti = np.meshgrid(rdom,tdom)
+rdom = np.linspace(rmin,rmax,1000)
+tdom = np.linspace(tmin,tmax,1000)
+ri,ti = np.meshgrid(rdom,tdom)
 
-# #set up a regular grid of interpolation points
-# #z_MNP = C_1(radii,times)
-# z_MNP_2 = C_1(rdom,tdom)
-# z_source_2 = f_source_1(ri,ti)
+#set up a regular grid of interpolation points
+#z_MNP = C_1(radii,times)
+z_MNP_2 = C_2(rdom,tdom)
+z_source_2 = f_source_2(ri,ti)
 
 
-# yy = []
-# yy_source = []
-# for r in radii:
-#     my_yy = []
-#     my_yy_source = []
-#     for t in times:
-#         my_yy.append(C_2(r,t))
-#         my_yy_source.append(f_source_2(r,t))
-#     yy.append(my_yy)
-#     yy_source.append(my_yy_source)
+yy = []
+yy_source = []
+for r in radii_2:
+    my_yy = []
+    my_yy_source = []
+    for t in times_2:
+        my_yy.append(C_2(r,t))
+        my_yy_source.append(f_source_2(r,t))
+    yy.append(my_yy)
+    yy_source.append(my_yy_source)
+
+yyy = []
+yyy_source = []
+for r in radii_2:
+    yyy.append(C_2(r,times_2[-1]))
+    yyy_source.append(f_source_2(r,times_2[-1]))
 
 
 
@@ -481,21 +442,22 @@ f_source_2 = sp.lambdify([radius,time],source_2,"numpy")
 # plt.title('solution MNP')
 # plt.show()
 
-# plt.figure()
-# plt.plot(radii,y_source)
-# plt.xlabel('radius [m]')
-# plt.grid()
-# plt.ylabel('C [mol/m³]')
-# plt.title('solution MNP à $t = t_f$')
-# plt.show()
 
-# plt.figure()
-# plt.plot(radii_2,y)
-# plt.xlabel('radius [m]')
-# plt.grid()
-# plt.ylabel('C [mol/m³]')
-# plt.title('solution MNP à $t = t_f$')
-# plt.show()
+plt.figure()
+plt.plot(radii_2,yyy)
+plt.xlabel('radius [m]')
+plt.grid()
+plt.ylabel('C [mol/m³]')
+plt.title('solution MNP  à $t = t_f$')
+plt.show()
+
+plt.figure()
+plt.plot(radii_2,yyy_source)
+plt.xlabel('radius [m]')
+plt.grid()
+plt.ylabel('C [mol/m³]')
+plt.title('solution MNP  à $t = t_f$')
+plt.show()
 
 # plt.figure()
 # plt.plot(radii,z_source_1,label = 'cas 1')
@@ -550,31 +512,38 @@ def solve_C_v2_ter(Ntot,delta_t,time_iter,stationnary): #stationnary = Bool
 		k+=1
 	return the_C
 
-# ###################################
-# #cas stationnaire, erreur en espace
+###################################
+#cas stationnaire, erreur en espace
 
 #MNP_final_C_stationnary = solve_C_v2_ter(Ntot,1,1,True)
-MNP_final_C_unstationnary = solve_C_v2_ter(Ntot,delta_t,time_iter,False)
+MNP_final_C_1 = solve_C_v2_ter(Ntot_1,delta_t_1,time_iter_1,False)
 
 
-list_ntot = [5,10,15,20,40,60,100]
+list_ntot = [5,10,15,20,40,100]
 erreurs_1 = []
 erreurs_2 = []
 erreurs_3 = []
 
 Nmax=1000
-u_anal = solve_C_v2_ter(Nmax,1,1,True)
+u_anal = solve_C_v2_ter(Nmax,delta_t_1,time_iter_1,False)
 radii2 = np.linspace(0,R,Nmax)
-f_u_anal = scp.interpolate.interp1d(radii2, u_anal[:,0],'cubic')
-radii = np.linspace(0,R,Ntot)
+
+
+u_anals = []
+for my_time_iter in range(time_iter_2):
+    u_anal = solve_C_v2_bis(Nmax,delta_t_1,time_iter_1,False)
+    u_anals.append(u_anal)
+
+f_u_anal = scp.interpolate.interp2d(radii2,times_1, u_anals,'cubic')
+#radii = np.linspace(0,R,Ntot_1)
 
 for Ntot in list_ntot:
 	radii = np.linspace(0,R,Ntot)
 	list_u_anal = []
 	for r in radii:
-		list_u_anal.append(f_u_anal(r))
+		list_u_anal.append(f_u_anal(r,Ttot_1))
 	the_radii = np.linspace(0,R,Ntot)
-	my_C = solve_C_v2_ter(Ntot,1,1,True)
+	my_C = solve_C_v2_ter(Ntot,delta_t_1,time_iter_1,False)
 	err1 = erreur_L1(my_C,list_u_anal,Ntot)
 	err2 = erreur_L2(my_C,list_u_anal,Ntot)
 	err3 = erreur_inf(my_C,list_u_anal,Ntot)
@@ -596,289 +565,47 @@ plt.loglog(list_h,erreurs_2, label = 'erreur L2',marker = '.')
 plt.loglog(list_h,erreurs_3, label = 'erreur infinie',marker = '.')
 plt.legend()
 plt.grid()
-plt.title('erreurs dans le cas stationnaire')
 plt.xlabel('epaisseur de maillage h [-]')
 plt.ylabel('erreurs [-]')
-plt.title("erreurs vs $h = \Delta x / \Delta x_{ref}$, equation stationnaire")
+plt.title("erreurs vs $h = \Delta x / \Delta x_{ref}$")
 plt.show()
 
 
 
-# ###################################
-# #cas unstationnaire, erreur en temps
+###################################
+#cas unstationnaire, erreur en temps
 
-# # list_dts = [0.1,0.2,0.4,.8,1.0,2.0,10.]
-# # erreurs_1 = []
-# # erreurs_2 = []
-# # erreurs_3 = []
+list_dts = [0.0000000001,0.0000000002,0.0000000004,0.0000000008,0.0000000016]
+#list_dts = [0.1,0.2,0.4,0.8,1.6]
+erreurs_11 = []
+erreurs_22 = []
+erreurs_33 = []
 
-# # Ntot = 500
-# # delta_t_min =1
-# # time_iter_min = Ttot/delta_t_min
-# # u_anal = solve_C_v2_ter(Ntot,delta_t_min,time_iter,True)
-# # radii2 = np.linspace(0,R,Ntot)
-# # radii = np.linspace(0,R,Ntot)
-
-# # for delta_t in list_dts:
-# # 	time_iter = Ttot/delta_t
-# # 	my_C = solve_C_v2_ter(Ntot,delta_t,time_iter,False)
-# # 	err1 = erreur_L1(my_C,u_anal,Ntot)
-# # 	err2 = erreur_L2(my_C,u_anal,Ntot)
-# # 	err3 = erreur_inf(my_C,u_anal,Ntot)
-# # 	erreurs_1.append(err1)
-# # 	erreurs_2.append(err2)
-# # 	erreurs_3.append(err3)
+delta_t_min =0.0000000001
+time_iter_min = Ttot_2/delta_t_min
+u_anal_2 = solve_C_v2_ter(Ntot_2,delta_t_min,time_iter_min,False)
+#radii2 = np.linspace(0,R,Ntot_2)
 
 
-
-# plt.figure()
-# plt.loglog(list_dts,erreurs_1, label = 'erreur L1',marker = '.')
-# plt.loglog(list_dts,erreurs_2, label = 'erreur L2',marker = '.')
-# plt.loglog(list_dts,erreurs_3, label = 'erreur infinie',marker = '.')
-# plt.legend()
-# plt.grid()
-# plt.title('erreurs dans le cas instationnaire')
-# plt.xlabel('epaisseur de maillage h [-]')
-# plt.ylabel('erreurs [-]')
-# plt.title("erreurs vs $\Delta t$, equation instationnaire")
-# plt.show()
+for delta_t in list_dts:
+	time_iter = Ttot_2/delta_t
+	my_C = solve_C_v2_ter(Ntot_2,delta_t,time_iter,False)
+	err11 = erreur_L1(my_C,u_anal_2,Ntot_2)
+	err22 = erreur_L2(my_C,u_anal_2,Ntot_2)
+	err33 = erreur_inf(my_C,u_anal_2,Ntot_2)
+	erreurs_11.append(err11)
+	erreurs_22.append(err22)
+	erreurs_33.append(err33)
 
 
-
-# ####################################################################################
-# ####################################################################################
-# ####################### --- Methode des problemes proches --- ######################
-# ####################################################################################
-# ####################################################################################
-
-
-# ####################################################################################
-# # cas 1 : analyse de convergence en espace, travail avec l'équation stationnaire
-# ####################################################################################
-
-# ### Obtention du terme source analytique
-# radius,time = sp.symbols('radius time')
-# C0 = Ce
-# T0 = 1
-# C_analytical = C0*radius*radius*sp.exp(time/T0)
-# f_C_analytical = sp.lambdify([radius,time],C_analytical)
-
-# the_times = np.zeros((10,1))
-# plt.figure()
-# plt.plot(radii,f_C_analytical(radii,the_times[0]))
-# plt.title('MMS - solution analytique stationnaire interpolee')
-# plt.xlabel('radius [m]')
-# plt.ylabel('C [mol/m³]')
-# plt.grid()
-# plt.show()
-
-
-
-# #appliquer l'operateur  sur la solution interpolee
-# MMS_source_stationnary = -Deff*1/radius*sp.diff(radius*sp.diff(C_analytical,radius),radius)+k*C_analytical
-# #create callable fonction pour l'expression symbolique
-# f_MMS_source_stationnary = sp.lambdify([radius,time],MMS_source_stationnary,"numpy")
-
-# #visualisation des resultats
-# #taille du domaine
-# xmin = 0.001
-# xmax = 0.5
-# tmin = 0
-# tmax = 10
-
-# #set up a regular grid of interpolation points
-# xdom = np.linspace(0,R,50)
-# tdom = np.linspace(tmin,tmax,50)
-# xi,ti = np.meshgrid(xdom,tdom)
-# #z_MNP = C_stationnary(xi,ti)
-# z_source_MMS = f_MMS_source_stationnary(xi,ti)
-
-
-# plt.contour(xi,ti,z_source_MMS)
-# plt.colorbar()
-# plt.xlabel('radius [m]')
-# plt.ylabel('C [mol/m³]')
-# plt.title('solution MNP, cas stationnaire')
-# plt.grid()
-# plt.show()
-
-
-# plt.figure()
-# plt.plot(radii,z_source_MMS)
-# plt.xlabel('radius [m]')
-# plt.ylabel('terme source [mol/m³]')
-# plt.title('Terme source, cas stationnaire')
-# plt.grid()
-# plt.show()
-
-
-# ####################################################################################
-# # cas 2 : analyse de convergence en temps, travail avec l'équation instationnaire
-# ####################################################################################
-
-
-# #appliquer l'operateur  sur la solution interpolee
-# MMS_source_unstationnary = sp.diff(C_analytical,time)-Deff*1/radius*sp.diff(radius*sp.diff(C_analytical,radius),radius)+k*C_analytical
-# #create callable fonction pour l'expression symbolique
-# f_MMS_source_unstationnary = sp.lambdify(radius,MMS_source_unstationnary,"numpy")
-
-# #visualisation des resultats
-# #taille du domaine
-# xmin = 0.001
-# xmax = 0.5
-
-# #set up a regular grid of interpolation points
-# xdom = np.linspace(0,R,50)
-# xi = np.meshgrid(xdom)
-# z_MNP = C_unstationnary(xi)
-# z_source_unstationnary = f_MMS_source_unstationnary(radii)
-
-
-
-# plt.figure()
-# plt.plot(radii,z_source,label = 'stationnaire')
-# plt.plot(radii,z_source_unstationnary,label = 'instationnaire')
-# plt.xlabel('radius [m]')
-# plt.ylabel('terme source [mol/m³]')
-# plt.legend()
-# plt.title('Terme source, cas instationnaire')
-# plt.grid()
-# plt.show()
-
-
-# ####################################################################################
-# # Analyse de convergence en espace et en temps, travail avec l'équation stationnaire puis instationnaire
-# ####################################################################################
-
-# #We then need to study the convergence of the code. To do so, we have to add the source term in the right vector.
-# #definition du terme de droite
-
-# def create_R_vector_ter(Ntot,the_C,delta_t,delta_r, stationnary):
-# 	D = np.zeros((Ntot,1))
-# 	D[-1,0] = Ce
-# 	the_r = 0
-
-# 	if stationnary == True:
-# 		alpha = 0.0
-# 	else : 
-# 		alpha = 1.0
-
-# 	for i in range (1,Ntot -1):
-# 		the_r += delta_r
-# 		if stationnary == True :
-# 			source_term = f_source_stationnary(the_r)
-# 		else :
-# 			source_term = f_source_unstationnary(the_r)
-# 		D[i,0] = source_term*delta_t*delta_r**2 + alpha*delta_r**2*the_C[i]
-# 	return D
-
-# #calcul du nouveau vecteur de solution a chaque iteration de temps avec inclusion du terme source
-# def solve_C_v2_ter(Ntot,delta_t,time_iter,stationnary): #stationnary = Bool
-# 	t = 0
-# 	k = 0
-# 	delta_r =R/(Ntot-1)
-# 	the_C = create_C_0(Ntot)
-# 	my_M = create_matrix_v2_bis(Ntot,delta_t,delta_r,stationnary)
-# 	#print(my_M)
-# 	while k < time_iter:
-# 		t+=delta_t
-# 		#update du vecteur D a chaque iteration en temps
-# 		my_D = create_R_vector_ter(Ntot,the_C,delta_t,delta_r,stationnary)
-# 		#resolution du nouveau vecteur inconnu pour le pas de temps
-# 		the_C = np.linalg.solve(my_M,my_D)
-# 		k+=1
-# 	return the_C
-
-# ###################################
-# #cas stationnaire, erreur en espace
-
-# #MNP_final_C_stationnary = solve_C_v2_ter(Ntot,1,1,True)
-# #MNP_final_C_unstationnary = solve_C_v2_ter(Ntot,delta_t,time_iter,False)
-
-
-# list_ntot = [5,10,15,20,40,60]
-# #list_ntot = [5]
-# erreurs_1 = []
-# erreurs_2 = []
-# erreurs_3 = []
-
-# Nmax=1000
-# u_anal = solve_C_v2_ter(Nmax,1,1,True)
-# radii2 = np.linspace(0,R,Nmax)
-# f_u_anal = scp.interpolate.interp1d(radii2, u_anal[:,0],'cubic')
-# radii = np.linspace(0,R,Ntot)
-
-# for Ntot in list_ntot:
-# 	radii = np.linspace(0,R,Ntot)
-# 	list_u_anal = []
-# 	for r in radii:
-# 		list_u_anal.append(f_u_anal(r))
-# 	the_radii = np.linspace(0,R,Ntot)
-# 	my_C = solve_C_v2_ter(Ntot,1,1,True)
-# 	err1 = erreur_L1(my_C,list_u_anal,Ntot)
-# 	err2 = erreur_L2(my_C,list_u_anal,Ntot)
-# 	err3 = erreur_inf(my_C,list_u_anal,Ntot)
-# 	erreurs_1.append(err1)
-# 	erreurs_2.append(err2)
-# 	erreurs_3.append(err3)
-
-
-# list_h = []
-# deltax_ref = R/Nmax
-# for Ntot in list_ntot:
-# 	deltax = R/Ntot
-# 	list_h.append(deltax/deltax_ref)
-
-
-# plt.figure()
-# plt.loglog(list_h,erreurs_1, label = 'erreur L1',marker = '.')
-# plt.loglog(list_h,erreurs_2, label = 'erreur L2',marker = '.')
-# plt.loglog(list_h,erreurs_3, label = 'erreur infinie',marker = '.')
-# plt.legend()
-# plt.grid()
-# plt.title('erreurs dans le cas stationnaire')
-# plt.xlabel('epaisseur de maillage h [-]')
-# plt.ylabel('erreurs [-]')
-# plt.title("erreurs vs $h = \Delta x / \Delta x_{ref}$, equation stationnaire")
-# #plt.show()
-
-
-
-# ###################################
-# #cas stationnaire, erreur en temps
-
-# list_dts = [0.1,0.2,0.4,.8,1.0,2.0,10.]
-# erreurs_1 = []
-# erreurs_2 = []
-# erreurs_3 = []
-
-# Ntot = 500
-# delta_t_min =1
-# time_iter_min = Ttot/delta_t_min
-# u_anal = solve_C_v2_ter(Ntot,delta_t_min,time_iter,True)
-# radii2 = np.linspace(0,R,Ntot)
-# radii = np.linspace(0,R,Ntot)
-
-# for delta_t in list_dts:
-# 	time_iter = Ttot/delta_t
-# 	my_C = solve_C_v2_ter(Ntot,delta_t,time_iter,False)
-# 	err1 = erreur_L1(my_C,u_anal,Ntot)
-# 	err2 = erreur_L2(my_C,u_anal,Ntot)
-# 	err3 = erreur_inf(my_C,u_anal,Ntot)
-# 	erreurs_1.append(err1)
-# 	erreurs_2.append(err2)
-# 	erreurs_3.append(err3)
-
-
-
-# plt.figure()
-# plt.loglog(list_dts,erreurs_1, label = 'erreur L1',marker = '.')
-# plt.loglog(list_dts,erreurs_2, label = 'erreur L2',marker = '.')
-# plt.loglog(list_dts,erreurs_3, label = 'erreur infinie',marker = '.')
-# plt.legend()
-# plt.grid()
-# plt.title('erreurs dans le cas instationnaire')
-# plt.xlabel('epaisseur de maillage h [-]')
-# plt.ylabel('erreurs [-]')
-# plt.title("erreurs vs $\Delta t$, equation instationnaire")
-# plt.show()
+print(erreurs_11)
+plt.figure()
+plt.loglog(list_dts,erreurs_11, label = 'erreur L1',marker = '.')
+plt.loglog(list_dts,erreurs_22, label = 'erreur L2',marker = '.')
+plt.loglog(list_dts,erreurs_33, label = 'erreur infinie',marker = '.')
+plt.legend()
+plt.grid()
+plt.xlabel('$\Delta t$ [s]')
+plt.ylabel('erreurs [-]')
+plt.title("erreurs vs $\Delta t$")
+plt.show()
